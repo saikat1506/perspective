@@ -152,7 +152,7 @@ class PerspectiveComputedExpressionParser {
             // If it can't find a parenthesis, and there are no column names,
             // return the entire expression. Otherwise, a partial function
             // could not be found, so return undefined.
-            if (expression.search(/["']$/) === -1) {
+            if (expression.search(/["']/) === -1) {
                 return expression;
             } else {
                 return undefined;

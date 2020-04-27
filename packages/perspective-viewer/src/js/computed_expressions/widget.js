@@ -371,7 +371,6 @@ class ComputedExpressionWidget extends HTMLElement {
     _autocomplete_replace(new_value) {
         const old_value = this._expression_editor.get_text();
         const last_input = this._computed_expression_parser.extract_partial_function(old_value);
-
         if (last_input && last_input !== '"') {
             // replace the fragment with the full function/operator
             const final_value = old_value.substring(0, old_value.length - last_input.length) + new_value;
