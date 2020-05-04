@@ -77,14 +77,18 @@ t_gnode::init() {
     m_gstate = std::make_shared<t_gstate>(m_input_schema, m_output_schema);
     m_gstate->init();
 
-    for (t_uindex idx = 0; idx < 1; ++idx) {
+    // port 0: master port, table created on port 0
+    // port 1: port for calls to `update`
+    // port 2: port for edits from other clients
+    // port 3: port for edits from self
+    for (t_uindex idx = 0; idx < 4; ++idx) {
         std::shared_ptr<t_port> port
             = std::make_shared<t_port>(PORT_MODE_PKEYED, m_input_schema);
         port->init();
         m_iports.push_back(port);
     }
 
-    // Create a single input port
+    std::cout << "Num iports: " << m_iports.size() << std::endl;
 
     for (t_uindex idx = 0, loop_end = m_transitional_schemas.size(); idx < loop_end; ++idx) {
         t_port_mode mode = idx == 0 ? PORT_MODE_PKEYED : PORT_MODE_RAW;
@@ -112,8 +116,15 @@ t_gnode::repr() const {
 void
 t_gnode::_send(t_uindex portid, const t_data_table& fragments) {
     PSP_TRACE_SENTINEL();
-    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
-    PSP_VERBOSE_ASSERT(portid == 0, "Only simple dataflows supported currently");
+    PSP_VERBOSE_ASSERT(m_init, "Cannot `_send` to an uninited gnode.");
+    //PSP_VERBOSE_ASSERT(portid == 0, "Only simple dataflows supported currently");
+
+    if (portid > m_iports.size()) {
+        std::cerr << "Cannot send table to a port that does not exist." << std::endl;
+        return;
+    }
+
+    std:: cout << "sending to portid: " << portid << std::endl;
 
     std::shared_ptr<t_port>& iport = m_iports[portid];
     iport->send(fragments);
@@ -229,6 +240,7 @@ t_gnode::_process_table() {
     std::vector<std::shared_ptr<t_data_table>> flattened_masked_tables;
 
     for (std::shared_ptr<t_port> input_port : m_iports) {
+        std::cout << "Processing next port" << std::endl;
         std::shared_ptr<t_data_table> flattened = nullptr;
 
         if (input_port->get_table()->size() == 0) {
@@ -447,6 +459,8 @@ t_gnode::_process_table() {
             PSP_GNODE_VERIFY_TABLE(updated_table);
         }
         #endif
+
+        flattened_masked->pprint();
 
         flattened_masked_tables.push_back(flattened_masked);
     }
